@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+  <head> 
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.3/semantic.min.css">
+    <script
+      src="https://code.jquery.com/jquery-3.1.1.min.js"
+      integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+      crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.3/semantic.min.js"></script>
+    <!-- Load TensorFlow.js. This is required to use MobileNet. -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.1"> </script>
+    <!-- Load the MobileNet model. -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@1.0.0"> </script>
+    <title><%= title %></title>
+  </head>
+
+  <body>
+    <!-- Sidebar Menu -->
+    <div class="ui left vertical menu sidebar">
+      <% if (typeof user !== 'undefined') { %>
+      <span><%= user.name %>さんとしてログイン中です</span>
+      <a class="active item" href="/">Home</a>
+      <a class="item" href="/logout">ログアウト</a>
+      <% }else{ %>
+      <a class="active item" href="/">Home</a>
+      <a class="item" href="/login">ログイン</a>
+      <a class="item" href="/register">新規登録</a>
+      <% } %>
+    </div>
+    <div class="pusher">
+      <div class="ui menu">
+	<div class="menu">
+	  <div id="js-sidebar" class="item">
+	    <i class="icon large grey content"></i>
+	  </div>
+	</div>
+      </div>
+      <!-- コンテンツ  -->
+      <div class="ui container">
+	<div class="ui header">
+	  <span class="library">
+	    AI Clothes image Analyzer
+          </span>
+	</div>
+	<!-- ここからログイン後の画面  -->
+	<% if (typeof user !== 'undefined') { %>
+	<p>
+	  <input type="hidden" name="picsdat" id="picsdat" value="<%= JSON.stringify(pics) %>">
+	  <form action="/" method="post" enctype="multipart/form-data" id="imgform">
+	    <input type="file" id="imagefile" name="imagefile" class="inputfile" accept="image/*" />
+	    <label for="imagefile" class="ui green large left button">
+	      <i class="ui picture icon"></i> 
+	      写真を選択
+	    </label>
+	    <input type="hidden" name="feature" id="feature" value="<%= JSON.stringify(pics) %>">
+	    <input type="submit" class="inputfile" id="submitbutton" />
+	    <label for="submitbutton" class="ui teal large right button">
+	      <i class="ui upload icon"></i> 
+	      アップロード
+	    </label>
+	  </form>
+	</p>
+	<p>
+	  <h3>AIによって判定された最近アップロードされた画像に似た画像</h3>
+	  <div class="ui link cards" id="similar">
+	  </div>
+	</p>
+	<p>
+	  <h3>AIによって判定された判定値のマトリクス</h3>
+	  <canvas id="canvas" width="1000" height="1000"></canvas>
+	  <h3>データベース</h3>
+	  <output id="list"></output>
+	  <div class="ui link cards">
+            <% pics.forEach(function(item) { %>
+	    <div class="card">
+	      <div class="image">
+		<img src="<%= item.link %>">
+	      </div>
+	      <div class="content">
+		<div class="meta">
+		  <span class="date"><%= item.date %></span>
+		</div>
+	      </div>
+	      <div class="extra content">
+		<p>feature:</p>
+		<%= item.feature %>
+	      </div>
+	    </div>
+            <% }); %>
+	  </div>
+	</p>
+	<style>
+	  .inputfile {
+	  width: 0.1px;
+	  height: 0.1px;
+	  opacity: 0;
+	  overflow: hidden;
+	  position: absolute;
+	  z-index: -1;
+	  }	  
+	  #canvas{
+	  top: 0;
+	  left: 0;
+	  width: 100%;
+	  height: 100%;
+	  }
+	  .thumb {
+	  border: 1px solid #000;
+	  margin: 10px 5px 0 0;
+	  }
+	</style>
+	<script src="javascripts/class.js"> </script>
+	<script src="javascripts/index.js"> </script>
+	
+	<span><%= user.name %>さんとしてログインしています</span>
+	<% } else{ %>
+	<!-- ここからログイン前の画面  -->
+	
+	<h4>AI Clothes Image Analyzerは、あなたの服の選択が最近着たものとかぶっていないかをチェックします。</h4>
+
+	<p>
+	  いつも同じ服着てくるって言われると嫌ですよね。
+	  写真を上げるだけでAIがあなたの服の選択が過去とかぶっているもしくは似た服であるかを判定します。
+	</p>
+
+	<p>
+	  <h3>使い方</h3>
+	  写真を撮り、アップロードします。
+	  このとき、常に縦にスマホを持ち、背景の影響が小さくなるように被写体が画面全体（はみ出すくらい）になるように撮影します。
+	  正方形に無理やり丸められますので、常に同じアスペクト比で撮影してください。
+	  アップロードしたら自動的に更新されます。
+	  もしされなければアップロードボタンを押して、アップロードを完了してください。
+	  似ている画像を日付順に表示します。
+	  もしも同じようなイベントが前にもあれば別の服を選ぶべきでしょう。
+	  <h3>機械学習により強化された検知</h3>
+	  機械学習では、画像の特徴を抽出します。
+	  機械学習により、色が似たような服でも、柄が違うと判断できるようになり、背景や画像の傾き、明るさの違い、拡大縮小などに強くなりました。
+	  この特徴量が似たような画像が同じ画像と判断します。
+	  この特徴量の比較の計算量はとても少ないので、高速に、しかもサーバーは計算することなく、データを取得することができます。
+	  特徴量の計算は、クライアントにより行われて機種にもよりますが100ms程度で計算が完了します。
+	  サーバーには特徴量の上位10個送信し、その結果をクライアントが受信します。
+	</p>
+	<p>
+	  特徴量の計算にはMobileNetV1を用いています。
+	  データベースには写真とアップロードされた時間の他、これらの計算された特徴の上位10個が表示されていることがわかります。
+	  学習時の画像のサイズは224×224で、この大きさに強制的に変形させられます。
+	  すべての写真がスクエアであることが理想ですが、3:2などの長方形の画像でも良好な結果が得られることがあります。
+	  サムネイル用の画像はそれとは別に、サーバー側で中央のスクエア領域に自動的にトリミングされ、大きさが大きい場合にはリサイズもされます。
+	  <h3>類似度マトリクスの見方</h3>
+	</p>
+	<div class="ui centered large image">
+	  <img src="/images/canvas.jpg">
+	</div>
+	<p>
+	  画像の縦の画像と横の画像の交差点にその2つの画像の類似度が現れています。
+	  類似度マトリクスは、画像の似ているほど赤くなる性質があります。
+	</p>
+	<a href="/register" class="ui huge download button">会員登録</a>
+	<a href="/login" class="ui huge basic button">ログインへ</a>
+	<% } %>
+	<h4>made by gombe</h4>
+      </div>
+      <script>
+	$('#js-sidebar').click(function() {
+	$('.ui.sidebar').sidebar('toggle');
+	});
+      </script>      
+    </div>
+  </body>
+</html>
